@@ -1,188 +1,244 @@
 from PySide6.QtWidgets import (
-    QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QLabel, QPushButton,
-    QFileDialog, QInputDialog, QStackedWidget, QTextEdit, QMessageBox
+    QMainWindow, QVBoxLayout, QHBoxLayout, QWidget,
+    QLabel, QPushButton, QStackedWidget, QTextEdit, QComboBox, QInputDialog
 )
-from PySide6.QtGui import QPixmap, QImage
-from PySide6.QtCore import Qt, QMargins
+from PySide6.QtGui import QPixmap
+from PySide6.QtCore import Qt
+from core.funcionalidades import Funcionalidades
 
 
 class SmashMetricsUI(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("SmashMetrics - Sistema de Análise Forense")
+        self.funcionalidades = Funcionalidades()
+        self.setWindowTitle("SmashMetrics - Análise Forense de Colisões")
         self.setGeometry(100, 100, 1200, 800)
-        self.setStyleSheet(self.get_stylesheet())
 
-        # Variáveis para referenciar as funcionalidades
-        self.funcionalidades = None
+        self.original_image = None
+        self.processed_image = None
+        self.scale_factor = None
+        self.selected_stiffness = None
 
-        # Inicializar interface gráfica
-        self.original_image = None  # Para armazenar a imagem original
-        self.processed_image = None  # Para armazenar a imagem processada
         self.setup_ui()
 
     def setup_ui(self):
-        """Configura os elementos principais da interface."""
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
         main_layout = QVBoxLayout(self.central_widget)
-
-        # Barra de navegação
         main_layout.addLayout(self.create_navbar())
-
-        # Widget empilhado para as telas
         self.stacked_widget = QStackedWidget()
         main_layout.addWidget(self.stacked_widget)
-
-        # Configurar telas
         self.setup_screens()
 
     def create_navbar(self):
-        """Cria a barra de navegação com botões."""
         navbar = QHBoxLayout()
         navbar.setSpacing(10)
         navbar.setContentsMargins(10, 10, 10, 10)
 
         buttons = [
-            ("⌂ Menu Inicial", self.show_dashboard),
-            ("\U0001F4F7 Analisar Foto", self.show_analysis),
-            ("\U0001F4DD Relatório", self.show_report),
-            ("\U0001F4AC Sobre", self.show_about),
+            ("⌂ Início", self.show_dashboard),
+            ("\U0001F4F7 Análise", self.show_analysis),
+            ("\U0001F4C8 Relatório", self.show_report),
+            ("\U0001F4DD Sobre", self.show_about),
         ]
 
         for label, handler in buttons:
-            button = QPushButton(label)
-            self.style_navbar_button(button)
-            button.clicked.connect(handler)
-            navbar.addWidget(button)
+            btn = QPushButton(label)
+            btn.setStyleSheet("""
+                QPushButton {
+                    padding: 10px;
+                    font-size: 14px;
+                    background-color: #2c3e50;
+                    color: white;
+                    border-radius: 5px;
+                }
+                QPushButton:hover {
+                    background-color: #34495e;
+                }
+            """)
+            btn.clicked.connect(handler)
+            navbar.addWidget(btn)
 
         return navbar
 
     def setup_screens(self):
-        """Adiciona as diferentes telas ao widget empilhado."""
         self.dashboard_widget = self.create_dashboard_screen()
-        self.analysis_widget = self.create_analysis_screen()
-        self.report_widget = self.create_report_screen()
-        self.about_widget = self.create_about_screen()
-
         self.stacked_widget.addWidget(self.dashboard_widget)
+
+        self.analysis_widget = self.create_analysis_screen()
         self.stacked_widget.addWidget(self.analysis_widget)
+
+        self.report_widget = self.create_report_screen()
         self.stacked_widget.addWidget(self.report_widget)
+
+        self.about_widget = self.create_about_screen()
         self.stacked_widget.addWidget(self.about_widget)
+
         self.stacked_widget.setCurrentWidget(self.dashboard_widget)
 
-    def create_dashboard_screen(self):
-        """Cria a tela inicial do dashboard."""
+    @staticmethod
+    def create_dashboard_screen():
         widget = QWidget()
         layout = QVBoxLayout(widget)
-        label = QLabel("Bem-vindo ao SmashMetrics")
-        label.setStyleSheet("font-size: 24px; font-weight: bold; text-align: center;")
-        layout.addWidget(label, alignment=Qt.AlignCenter)
+        layout.setContentsMargins(60, 60, 60, 60)
+        layout.setSpacing(20)
+
+        title = QLabel("SmashMetrics")
+        title.setAlignment(Qt.AlignCenter)
+        title.setStyleSheet("""
+            font-size: 42px;
+            font-weight: bold;
+            color: #3498db;
+            letter-spacing: 2px;
+        """)
+        layout.addWidget(title)
+
+        subtitle = QLabel("Sistema de análise forense de colisões veiculares")
+        subtitle.setAlignment(Qt.AlignCenter)
+        subtitle.setStyleSheet("font-size: 20px; color: #ecf0f1; margin-bottom: 10px;")
+        layout.addWidget(subtitle)
+
+        icon_label = QLabel()
+        icon_pixmap = QPixmap("logo_smashmetrics-removebg-preview.png").scaled(300, 300, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        icon_label.setPixmap(icon_pixmap)
+        icon_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(icon_label)
+
+        description = QLabel(
+            "Este software foi desenvolvido como parte do projeto da disciplina de Processamento Digital de Imagens no IFCE - Campus Maracanaú. "
+            "O SmashMetrics permite analisar imagens de colisões veiculares e estimar deformações e velocidades usando métodos forenses."
+        )
+        description.setAlignment(Qt.AlignCenter)
+        description.setWordWrap(True)
+        description.setStyleSheet("font-size: 16px; color: #bdc3c7; line-height: 1.5;")
+        layout.addWidget(description)
+
         return widget
 
     def create_analysis_screen(self):
-        """Cria a tela de análise de imagens."""
         widget = QWidget()
         layout = QVBoxLayout(widget)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(20)
 
-        # Título
-        label = QLabel("Analisar Imagem de Colisão")
-        label.setStyleSheet("font-size: 20px; font-weight: bold; text-align: center;")
-        layout.addWidget(label, alignment=Qt.AlignCenter)
+        title = QLabel("Análise de Imagem de Colisão")
+        title.setAlignment(Qt.AlignCenter)
+        title.setStyleSheet("font-size: 28px; color: #ecf0f1; font-weight: bold;")
+        layout.addWidget(title)
 
-        # Container da imagem e botão
-        image_container = QWidget()
-        image_layout = QVBoxLayout(image_container)
-        image_layout.setContentsMargins(0, 0, 0, 0)
-        image_layout.setSpacing(0)
-
-        # Label para exibir a imagem
         self.image_label = QLabel("Nenhuma imagem carregada")
-        self.image_label.setStyleSheet("border: 1px solid #00796b; min-height: 500px;")
         self.image_label.setAlignment(Qt.AlignCenter)
-        image_layout.addWidget(self.image_label)
-
-        # Botão de remover imagem (X)
-        self.remove_image_button = QPushButton("X")
-        self.remove_image_button.setStyleSheet(
-            """
-           QPushButton {
-                   background-color: #b71c1c;
-                   color: white;
-                   border: none;
-                   border-radius: 20px;
-                   font-size: 18px;
-                   font-weight: bold;
-               }
-               QPushButton:disabled {
-                   background-color: #757575;
-                   color: #bdbdbd;
-               }
-               QPushButton:hover {
-                   background-color: #d32f2f;
-               }
-               QPushButton:pressed {
-                   background-color: #9a0007;
-               }
-            """
+        self.image_label.setStyleSheet(
+            "background-color: #2c3e50; border: 2px dashed #7f8c8d; min-height: 500px; margin-top: 10px;"
         )
-        self.remove_image_button.setFixedSize(40, 40)  # Tamanho fixo do botão
-        self.remove_image_button.setEnabled(False)  # Desativado inicialmente
-        self.remove_image_button.clicked.connect(self.remove_image)
+        layout.addWidget(self.image_label)
 
-        # Layout absoluto para posicionar o botão
-        image_layout.addWidget(self.remove_image_button, alignment=Qt.AlignCenter | Qt.AlignRight)
-
-        layout.addWidget(image_container)
-
-        # Botões de ação
         button_layout = QHBoxLayout()
+        button_layout.setSpacing(15)
+
         buttons = [
-            ("Importar Imagem", lambda: self.funcionalidades.import_image(self)),
-            ("Converter para Escala de Cinza", lambda: self.funcionalidades.convert_to_gray(self)),
-            ("Segmentar (Watershed)", lambda: self.funcionalidades.apply_watershed(self)),
-            ("Calibrar Imagem", lambda: self.funcionalidades.calibrate_image(self)),
+            ("Importar Imagem", self.funcionalidades.import_image),
+            ("Converter para 8-bit", self.funcionalidades.convert_to_gray),
+            ("Segmentar Deformação", self.funcionalidades.apply_watershed),
+            ("Calibrar Escala", self.funcionalidades.calibrate_image),
+            ("Calcular Velocidade", self.funcionalidades.handle_velocity_calculation),
         ]
 
-        for label, handler in buttons:
-            button = QPushButton(label)
-            button.clicked.connect(handler)
-            button_layout.addWidget(button)
+        for text, handler in buttons:
+            btn = QPushButton(text)
+            btn.setStyleSheet("padding: 10px 20px; font-size: 16px;")
+            btn.clicked.connect(lambda _, h=handler: h(self))
+            button_layout.addWidget(btn)
+
+        self.stiffness_combo = QComboBox()
+        self.stiffness_combo.addItems([
+            "Carro Sedan (k=150000 N/m)",
+            "Caminhonete (k=250000 N/m)",
+            "Personalizado..."
+        ])
+        self.stiffness_combo.setStyleSheet("padding: 10px; font-size: 16px;")
+        self.stiffness_combo.currentIndexChanged.connect(self.update_stiffness_value)
+        button_layout.addWidget(self.stiffness_combo)
 
         layout.addLayout(button_layout)
         return widget
 
-    def remove_image(self):
-        """Remove a imagem carregada."""
-        self.original_image = None
-        self.processed_image = None
-        self.image_label.setPixmap(QPixmap())  # Remove a imagem exibida
-        self.image_label.setText("Nenhuma imagem carregada")
-        self.remove_image_button.setEnabled(False)  # Desativa o botão novamente
-
     def create_report_screen(self):
-        """Cria a tela de geração de relatório."""
         widget = QWidget()
         layout = QVBoxLayout(widget)
+        layout.setContentsMargins(30, 30, 30, 30)
+        layout.setSpacing(20)
 
-        label = QLabel("Relatório de Análise")
-        label.setStyleSheet("font-size: 20px; font-weight: bold; text-align: center;")
-        layout.addWidget(label, alignment=Qt.AlignCenter)
+        header = QLabel("Relatório de Análise")
+        header.setAlignment(Qt.AlignCenter)
+        header.setStyleSheet("font-size: 30px; font-weight: bold; color: #ecf0f1; margin-bottom: 20px;")
+        layout.addWidget(header)
 
         self.report_text = QTextEdit()
-        self.report_text.setPlaceholderText("O relatório gerado será exibido aqui...")
+        self.report_text.setReadOnly(True)
+        self.report_text.setStyleSheet("""
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            border: 2px solid #34495e;
+            border-radius: 8px;
+            padding: 15px;
+            font-family: 'Consolas', monospace;
+            font-size: 16px;
+        """)
         layout.addWidget(self.report_text)
 
+        btn_export = QPushButton("Exportar para PDF")
+        btn_export.setStyleSheet("""
+            QPushButton {
+                background-color: #27ae60;
+                color: white;
+                padding: 12px 24px;
+                border-radius: 5px;
+                font-size: 18px;
+            }
+            QPushButton:hover {
+                background-color: #1e8449;
+            }
+        """)
+        layout.addWidget(btn_export, alignment=Qt.AlignRight)
         return widget
 
     def create_about_screen(self):
-        """Cria a tela de informações sobre o sistema."""
         widget = QWidget()
         layout = QVBoxLayout(widget)
+        layout.setContentsMargins(30, 30, 30, 30)
+        layout.setSpacing(20)
 
-        label = QLabel("Sobre o SmashMetrics")
-        label.setStyleSheet("font-size: 20px; font-weight: bold; text-align: center;")
-        layout.addWidget(label, alignment=Qt.AlignCenter)
+        header = QLabel("Sobre o SmashMetrics")
+        header.setAlignment(Qt.AlignCenter)
+        header.setStyleSheet("font-size: 30px; font-weight: bold; color: #ecf0f1; margin-bottom: 20px;")
+        layout.addWidget(header)
+
+        content = QLabel(
+            "SmashMetrics é um sistema de análise forense de colisões veiculares desenvolvido "
+            "para auxiliar na reconstituição de acidentes de trânsito por meio de técnicas avançadas de "
+            "Processamento Digital de Imagens (PDI).\n\n"
+            "A ferramenta permite a medição de deformações em veículos a partir de imagens, aplicando "
+            "metodologias consagradas como a de Campbell, para estimar a energia de impacto e a velocidade da colisão.\n\n"
+            "Este software faz parte de um projeto acadêmico desenvolvido como requisito para a disciplina de "
+            "Processamento Digital de Imagens, no Instituto Federal de Educação, Ciência e Tecnologia do Ceará (IFCE) – Campus Maracanaú.\n\n"
+            "O SmashMetrics é voltado para peritos, pesquisadores e profissionais da área forense que buscam uma "
+            "solução de baixo custo e acessível para análise e reconstrução de sinistros. O projeto tem caráter educacional e experimental, "
+            "visando aprimorar a aplicação de visão computacional na investigação de acidentes.\n\n"
+            "Para mais informações, visite nosso repositório no GitHub ou entre em contato com nossa equipe.\n\n"
+            "Versão 1.0"
+        )
+
+        content.setStyleSheet("font-size: 18px; color: #bdc3c7; line-height: 1.5;")
+        content.setWordWrap(True)
+        content.setAlignment(Qt.AlignJustify)
+        layout.addWidget(content)
+
+        logo = QLabel()
+        logo_pixmap = QPixmap("path/to/your/logo.png").scaled(150, 150, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        logo.setPixmap(logo_pixmap)
+        logo.setAlignment(Qt.AlignCenter)
+        layout.addWidget(logo)
 
         return widget
 
@@ -198,25 +254,30 @@ class SmashMetricsUI(QMainWindow):
     def show_about(self):
         self.stacked_widget.setCurrentWidget(self.about_widget)
 
-    def style_navbar_button(self, button):
-        button.setStyleSheet(
-            "padding: 10px; font-size: 16px; color: #eceff1; background-color: #00796b; border: none; border-radius: 5px;"
-        )
-        button.setCursor(Qt.PointingHandCursor)
+    def remove_image(self):
+        self.original_image = None
+        self.processed_image = None
+        self.image_label.clear()
+        self.image_label.setText("Nenhuma imagem carregada")
+        self.remove_image_button.setEnabled(False)
 
-    def get_stylesheet(self):
-        """Retorna o estilo geral do aplicativo."""
-        return """
-            QMainWindow { background-color: #263238; }
-            QLabel { color: #eceff1; }
-            QPushButton {
-                background-color: #00796b; color: #ffffff; border: none;
-                padding: 10px; font-size: 16px; border-radius: 5px;
-            }
-            QPushButton:hover { background-color: #004d40; }
-            QPushButton:pressed { background-color: #00332c; }
-            QTextEdit, QInputDialog {
-                background-color: #37474f; color: #eceff1;
-                border: 1px solid #00796b; border-radius: 5px;
-            }
-        """
+    def update_stiffness_value(self):
+        """Atualiza o valor de rigidez com base na seleção do usuário."""
+        selection = self.stiffness_combo.currentText()
+        if "Sedan" in selection:
+            self.selected_stiffness = 150000  # exemplo para Sedan
+        elif "Caminhonete" in selection:
+            self.selected_stiffness = 250000  # exemplo para Caminhonete
+        else:
+            value, ok = QInputDialog.getDouble(self, "Rigidez Personalizada",
+                                               "Insira o valor da constante de rigidez (N/m):", decimals=2)
+            self.selected_stiffness = value if ok else None
+
+    def handle_calculate_velocity(self):
+        deformation = self.funcionalidades.measure_deformation(self)
+        if deformation is None:
+            return
+        if self.selected_stiffness is None:
+            self.update_stiffness_value()
+            self.funcionalidades.calculate_energy_and_velocity_campbell(self)
+
